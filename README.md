@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Provincial Inpatient Admission Forecasting in Canada
 
 ## Overview
@@ -81,3 +82,6 @@ This project shows:
 ---
 
 
+=======
+"# Provincial-Inpatient-Admission-Forecasting-in-Canada" 
+>>>>>>> 3d795cf (Data loaded)
