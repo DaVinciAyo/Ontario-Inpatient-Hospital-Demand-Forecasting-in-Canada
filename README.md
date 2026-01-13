@@ -7,8 +7,8 @@ This project analyses long-term inpatient hospital discharge trends in Canada, w
 Understand historical inpatient demand patterns
 
 Identify structural disruptions
-
 Produce a baseline forecast for planning purposes
+
 -----
 
 ## Data
@@ -22,6 +22,7 @@ Frequency: Annual
 Geography: Canada, with province-level analysis
 
 COVID-19 years are treated as a structural disruption and excluded from model training.
+
 -----
 ## Methodology
 
@@ -32,6 +33,7 @@ Exploratory Data Analysis to assess trends, concentration, and stability
 ETS (Error–Trend–Seasonal) modelling with additive trend
 
 Sensitivity analysis using a damped trend specification
+
 -----
 ## Key findings
 
@@ -42,12 +44,14 @@ Pre-COVID demand follows a stable, gradual growth pattern
 Post-COVID volumes deviate from baseline expectations
 
 Forecast results are robust to alternative trend assumptions
+
 ---
 ## Output
 
 Five-year baseline forecast for Ontario inpatient discharges
 
 Planning-oriented interpretation, not operational prediction
+
 ------
 ## Intended use
 
