@@ -82,9 +82,11 @@ else:
 forecast_horizon = 5
 future_forecast = model.forecast(forecast_horizon)
 
+forecast_start = train["Year"].max() + 1
+
 future_years = np.arange(
-    ontario_yearly["Year"].max() + 1,
-    ontario_yearly["Year"].max() + 1 + forecast_horizon
+    forecast_start,
+    forecast_start + forecast_horizon
 )
 
 forecast_df = pd.DataFrame({
@@ -188,13 +190,23 @@ with tab2:
     st.header("Growth Scenario Adjustment")
 
     adjustment = st.slider(
-        "Adjust Annual Growth Assumption (%)",
+        "Adjust Annual Growth Rate (%)",
         -2.0, 2.0, 0.0, 0.1
     )
 
-    scenario_df = forecast_df.copy()
-    scenario_df["Scenario"] = (
-        scenario_df["Forecast"] * (1 + adjustment / 100)
+baseline_start = forecast_df["Forecast"].iloc[0]
+
+growth_rate = adjustment / 100
+
+scenario_values = []
+
+value = baseline_start
+
+for i in range(len(forecast_df)):
+    value = value * (1 + growth_rate)
+    scenario_values.append(value)
+
+scenario_df["Scenario"] = scenario_values
     )
 
     fig2 = go.Figure()
@@ -350,3 +362,4 @@ Model Notes:
 - Counterfactual projection used to quantify structural break
 - Designed for medium-term planning interpretation
 """)
+
