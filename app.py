@@ -1,26 +1,26 @@
 # ==========================================================
 # Ontario Inpatient Hospital Demand Dashboard
-# Analytical Forecasting & Structural Break Diagnostics
+# Historical Analysis + Predictive Forecast (2025+)
 # ==========================================================
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from sklearn.metrics import mean_absolute_percentage_error
 
 # ----------------------------------------------------------
 # Page Configuration
 # ----------------------------------------------------------
 
 st.set_page_config(
-    page_title="Ontario Inpatient Planning Dashboard",
+    page_title="Ontario Inpatient Demand Forecast",
     layout="wide"
 )
 
-st.title("Ontario Inpatient Hospital Demand Dashboard")
-st.markdown("Medium-term forecasting tool with structural break diagnostics.")
+st.title("Ontario Inpatient Hospital Demand Forecasting Dashboard")
+st.markdown(
+    "Interactive planning tool combining historical analysis (1995–2024) and predictive forecasts (2025+)."
+)
 st.divider()
 
 # ----------------------------------------------------------
@@ -29,13 +29,14 @@ st.divider()
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data/canada_hospital_inpatient_clean_1995_2024.csv")
-    return df
+    hist = pd.read_csv("data/canada_hospital_inpatient_clean_1995_2024.csv")
+    forecast = pd.read_csv("data/ontario_forecast_2025_2029.csv")
+    return hist, forecast
 
-df = load_data()
+df, forecast_df = load_data()
 
 # ----------------------------------------------------------
-# Prepare Ontario Annual Series
+# Prepare Ontario Historical Series
 # ----------------------------------------------------------
 
 ontario = df[
@@ -49,7 +50,6 @@ ontario_yearly = (
     .reset_index()
 )
 
-# safer fiscal year parsing
 ontario_yearly["Year"] = (
     ontario_yearly["Fiscal_Year"]
     .astype(str)
@@ -60,61 +60,6 @@ ontario_yearly["Year"] = (
 ontario_yearly = ontario_yearly.sort_values("Year")
 
 # ----------------------------------------------------------
-# Train/Test Split (Structural Break Handling)
-# ----------------------------------------------------------
-
-train = ontario_yearly[ontario_yearly["Year"] < 2020]
-test = ontario_yearly[ontario_yearly["Year"] >= 2020]
-
-# ----------------------------------------------------------
-# Fit ETS Model
-# ----------------------------------------------------------
-
-model = ExponentialSmoothing(
-    train["Number_of_Discharges"],
-    trend="add",
-    seasonal=None
-).fit()
-
-# ----------------------------------------------------------
-# Backtest on COVID Period
-# ----------------------------------------------------------
-
-if not test.empty:
-    test_forecast = model.forecast(len(test))
-    mape = mean_absolute_percentage_error(
-        test["Number_of_Discharges"],
-        test_forecast
-    ) * 100
-else:
-    mape = None
-
-# ----------------------------------------------------------
-# 5 Year Forecast
-# ----------------------------------------------------------
-
-forecast_horizon = 5
-future_forecast = model.forecast(forecast_horizon)
-
-forecast_start = train["Year"].max() + 1
-
-future_years = np.arange(
-    forecast_start,
-    forecast_start + forecast_horizon
-)
-
-forecast_df = pd.DataFrame({
-    "Year": future_years,
-    "Forecast": future_forecast
-})
-
-# Confidence intervals
-residual_std = np.std(model.resid)
-
-forecast_df["Upper"] = forecast_df["Forecast"] + 1.96 * residual_std
-forecast_df["Lower"] = forecast_df["Forecast"] - 1.96 * residual_std
-
-# ----------------------------------------------------------
 # Tabs
 # ----------------------------------------------------------
 
@@ -122,7 +67,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "Forecast Overview",
     "Scenario Analysis",
     "Demographic Analysis",
-    "Structural Break & Diagnostics"
+    "Structural Break Analysis"
 ])
 
 # ==========================================================
@@ -131,76 +76,36 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
 
-    st.header("Baseline ETS Forecast (Pre-COVID Training)")
+    st.header("Historical Demand and Predictive Forecast")
 
-    latest_actual = train.iloc[-1]["Number_of_Discharges"]
+    latest_actual = ontario_yearly.iloc[-1]["Number_of_Discharges"]
     final_forecast = forecast_df.iloc[-1]["Forecast"]
 
     growth_pct = ((final_forecast - latest_actual) / latest_actual) * 100
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Latest Pre-COVID Discharges",
-        f"{latest_actual:,.0f}"
-    )
-
-    col2.metric(
-        "5-Year Forecast",
-        f"{final_forecast:,.0f}"
-    )
-
-    col3.metric(
-        "Projected Growth (%)",
-        f"{growth_pct:.2f}%"
-    )
-
-    if mape:
-        st.metric(
-            "Backtest MAPE (COVID Period)",
-            f"{mape:.2f}%"
-        )
+    col1.metric("Latest Observed Discharges (2024)", f"{latest_actual:,.0f}")
+    col2.metric("Projected Discharges (Final Forecast Year)", f"{final_forecast:,.0f}")
+    col3.metric("Projected Growth (%)", f"{growth_pct:.2f}%")
 
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=train["Year"],
-        y=train["Number_of_Discharges"],
+        x=ontario_yearly["Year"],
+        y=ontario_yearly["Number_of_Discharges"],
         mode="lines+markers",
-        name="Historical (Pre-COVID)"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=test["Year"],
-        y=test["Number_of_Discharges"],
-        mode="lines+markers",
-        name="Observed (COVID Period)"
+        name="Historical"
     ))
 
     fig.add_trace(go.Scatter(
         x=forecast_df["Year"],
         y=forecast_df["Forecast"],
-        mode="lines",
+        mode="lines+markers",
         line=dict(dash="dash"),
-        name="Forecast"
+        name="Forecast (2025+)"
     ))
 
-    fig.add_trace(go.Scatter(
-        x=forecast_df["Year"],
-        y=forecast_df["Upper"],
-        line=dict(color="lightgrey"),
-        showlegend=False
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=forecast_df["Year"],
-        y=forecast_df["Lower"],
-        fill="tonexty",
-        line=dict(color="lightgrey"),
-        name="Confidence Interval"
-    ))
-
-    # structural break marker
     fig.add_vline(
         x=2020,
         line_dash="dash",
@@ -222,10 +127,10 @@ with tab1:
 
 with tab2:
 
-    st.header("Growth Scenario Adjustment")
+    st.header("Alternative Growth Scenario")
 
     st.caption(
-        "Scenario assumes a constant alternative annual growth rate."
+        "Scenario assumes a constant alternative annual growth rate applied to the forecast baseline."
     )
 
     adjustment = st.slider(
@@ -239,7 +144,6 @@ with tab2:
     growth_rate = adjustment / 100
 
     scenario_values = []
-
     value = baseline_start
 
     for _ in range(len(forecast_df)):
@@ -273,9 +177,9 @@ with tab2:
     st.plotly_chart(fig2, use_container_width=True)
 
     st.download_button(
-        "Download Forecast Data (CSV)",
+        "Download Forecast Data",
         data=forecast_df.to_csv(index=False),
-        file_name="ontario_ets_forecast.csv",
+        file_name="ontario_forecast.csv",
         mime="text/csv"
     )
 
@@ -326,107 +230,53 @@ with tab3:
     st.plotly_chart(fig3, use_container_width=True)
 
     st.download_button(
-        "Download Demographic Data (CSV)",
+        "Download Demographic Data",
         data=demo_yearly.to_csv(index=False),
-        file_name="ontario_demographic_data.csv",
+        file_name="ontario_demographics.csv",
         mime="text/csv"
     )
 
 # ==========================================================
-# TAB 4 — Structural Break Diagnostics
+# TAB 4 — Structural Break Analysis
 # ==========================================================
 
 with tab4:
 
-    st.header("Structural Break Analysis & Diagnostics")
+    st.header("COVID Structural Disruption")
 
-    if not test.empty:
+    fig4 = go.Figure()
 
-        counterfactual = model.forecast(len(test))
-
-        deviation = (
-            test["Number_of_Discharges"].values
-            - counterfactual.values
-        )
-
-        avg_deviation = deviation.mean()
-
-        st.metric(
-            "Average COVID Deviation from Trend",
-            f"{avg_deviation:,.0f} discharges"
-        )
-
-        fig4 = go.Figure()
-
-        fig4.add_trace(go.Scatter(
-            x=ontario_yearly["Year"],
-            y=ontario_yearly["Number_of_Discharges"],
-            mode="lines+markers",
-            name="Actual"
-        ))
-
-        fig4.add_trace(go.Scatter(
-            x=test["Year"],
-            y=counterfactual,
-            mode="lines",
-            line=dict(dash="dash"),
-            name="Counterfactual Trend"
-        ))
-
-        fig4.update_layout(
-            template="simple_white",
-            xaxis_title="Year",
-            yaxis_title="Discharges"
-        )
-
-        st.plotly_chart(fig4, use_container_width=True)
-
-        fig5 = go.Figure()
-
-        fig5.add_trace(go.Bar(
-            x=test["Year"],
-            y=deviation,
-            name="Deviation"
-        ))
-
-        fig5.update_layout(
-            template="simple_white",
-            xaxis_title="Year",
-            yaxis_title="Deviation from Trend"
-        )
-
-        st.plotly_chart(fig5, use_container_width=True)
-
-    # residual diagnostics
-    st.subheader("Training Residual Diagnostics")
-
-    residuals = model.resid
-
-    fig6 = go.Figure()
-
-    fig6.add_trace(go.Scatter(
-        x=train["Year"],
-        y=residuals,
-        mode="lines+markers"
+    fig4.add_trace(go.Scatter(
+        x=ontario_yearly["Year"],
+        y=ontario_yearly["Number_of_Discharges"],
+        mode="lines+markers",
+        name="Observed Demand"
     ))
 
-    fig6.add_hline(y=0)
-
-    fig6.update_layout(
-        template="simple_white",
-        xaxis_title="Year",
-        yaxis_title="Residual"
+    fig4.add_vline(
+        x=2020,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="COVID Impact"
     )
 
-    st.plotly_chart(fig6, use_container_width=True)
+    fig4.update_layout(
+        template="simple_white",
+        xaxis_title="Year",
+        yaxis_title="Number of Discharges"
+    )
+
+    st.plotly_chart(fig4, use_container_width=True)
 
 st.divider()
 
-st.markdown("""
-Model Notes
+st.markdown(
+"""
+**Model Context**
 
-• ETS model with additive trend  
-• COVID years excluded from training  
-• Counterfactual projection quantifies structural break  
-• Designed for medium-term planning interpretation
-""")
+- Historical inpatient discharge data (1995–2024)
+- Predictive forecasting performed in modelling notebooks
+- Dashboard visualises forecasts and planning scenarios
+- Designed for medium-term healthcare capacity planning
+"""
+)
