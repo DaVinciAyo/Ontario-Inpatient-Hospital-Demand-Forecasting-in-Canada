@@ -280,3 +280,4 @@ st.markdown(
 - Designed for medium-term healthcare capacity planning
 """
 )
+
