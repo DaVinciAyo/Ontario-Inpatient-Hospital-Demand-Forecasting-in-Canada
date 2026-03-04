@@ -98,7 +98,7 @@ ETS (Error–Trend–Seasonal) modelling with additive trend
 Sensitivity analysis using a damped trend specification
 
 
-##Forecasting Methodology
+## Forecasting Methodology
 
 Future inpatient demand was projected using an Exponential Smoothing (ETS) model.
 
