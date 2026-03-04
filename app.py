@@ -89,10 +89,14 @@ with tab1:
 
     st.header("Historical Demand and Predictive Forecast")
 
-    latest_actual = ontario_yearly.iloc[-1]["Number_of_Discharges"]
-    final_forecast = forecast_df.iloc[-1]["Forecast"]
+latest_actual = ontario_yearly.iloc[-1]["Number_of_Discharges"]
 
+if not forecast_df.empty:
+    final_forecast = forecast_df.iloc[-1]["Forecast"]
     growth_pct = ((final_forecast - latest_actual) / latest_actual) * 100
+else:
+    final_forecast = latest_actual
+    growth_pct = 0
 
     col1, col2, col3 = st.columns(3)
 
@@ -109,12 +113,14 @@ with tab1:
         name="Historical"
     ))
 
+if not forecast_df.empty:
     fig.add_trace(go.Scatter(
         x=forecast_df["Year"],
         y=forecast_df["Forecast"],
         mode="lines+markers",
         line=dict(dash="dash"),
         name="Forecast (2025+)"
+    ))
     ))
 
     fig.add_vline(
@@ -291,6 +297,7 @@ st.markdown(
 - Designed for medium-term healthcare capacity planning
 """
 )
+
 
 
 
