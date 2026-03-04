@@ -27,18 +27,22 @@ st.divider()
 # Load Data
 # ----------------------------------------------------------
 
+import os
+
 @st.cache_data
 def load_data():
+
     hist = pd.read_csv("data/canada_hospital_inpatient_clean_1995_2024.csv")
-    import os
 
-forecast_path = "data/ontario_forecast_2025_2029.csv"
+    forecast_path = "data/ontario_forecast_2025_2029.csv"
 
-if os.path.exists(forecast_path):
-    forecast = pd.read_csv(forecast_path)
-else:
-    forecast = pd.DataFrame(columns=["Year", "Forecast"])
+    if os.path.exists(forecast_path):
+        forecast = pd.read_csv(forecast_path)
+    else:
+        forecast = pd.DataFrame(columns=["Year", "Forecast"])
+
     return hist, forecast
+
 
 df, forecast_df = load_data()
 
@@ -287,5 +291,6 @@ st.markdown(
 - Designed for medium-term healthcare capacity planning
 """
 )
+
 
 
