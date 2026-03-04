@@ -121,7 +121,6 @@ if not forecast_df.empty:
         line=dict(dash="dash"),
         name="Forecast (2025+)"
     ))
-    ))
 
     fig.add_vline(
         x=2020,
@@ -297,6 +296,7 @@ st.markdown(
 - Designed for medium-term healthcare capacity planning
 """
 )
+
 
 
 
